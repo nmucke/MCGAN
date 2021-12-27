@@ -18,7 +18,8 @@ def normal_init(m, mean, std):
             m.bias.data.zero_()
 
 class ParameterGeneratorPipeFlow(nn.Module):
-    def __init__(self, latent_dim, par_dim, gen_channels, par_neurons):
+    def __init__(self, latent_dim, par_dim, gen_channels, par_neurons, 
+                 output_dim=(2,256), activation=None):
         super().__init__()
 
         self.latent_dim = latent_dim
@@ -34,7 +35,7 @@ class ParameterGeneratorPipeFlow(nn.Module):
         output_padding = [0, 0, 0, 0, 0, 1]
         bias = [True, True, True, True, True, False]
 
-        self.activation = nn.LeakyReLU()
+        self.activation = activation
         self.relu = nn.ReLU()
 
         self.linear_layer1 = nn.Linear(in_features=latent_dim,
@@ -68,7 +69,7 @@ class ParameterGeneratorPipeFlow(nn.Module):
 
         self.conv_par = nn.ModuleList()
         self.batch_norm_pars = nn.ModuleList()
-        for i in range(3):
+        for i in range(len(self.par_neurons)-2):
             self.batch_norm_pars.append(nn.BatchNorm2d(par_neurons[-i-1]))
             self.conv_par.append(nn.Conv2d(in_channels=par_neurons[-i-1],
                                out_channels=par_neurons[-i-2],
@@ -80,21 +81,9 @@ class ParameterGeneratorPipeFlow(nn.Module):
 
         self.pars_linear_layer1 = nn.Linear(in_features=par_neurons[-4]*2*2,
                                        out_features=par_neurons[-1])
-        self.pars_linear_layer4 = nn.Linear(in_features=par_neurons[-1],
+        self.pars_linear_layer2 = nn.Linear(in_features=par_neurons[-1],
                                             out_features=par_dim,
                                             bias=True)
-        '''
-        self.par_neurons.insert(0,256*2)
-        self.par_linear = nn.ModuleList()
-        for i in range(len(self.par_neurons) - 1):
-            self.par_linear.append(nn.Linear(in_features=par_neurons[i],
-                                           out_features=par_neurons[i+1],
-                                           bias=True))
-
-        self.par_linear_layer_out = nn.Linear(in_features=par_neurons[-1],
-                                           out_features=self.parameter_dim,
-                                           bias=False)
-        '''
         self.dx = torch.tensor(7.8125)
     def forward(self, z):
 
@@ -112,44 +101,25 @@ class ParameterGeneratorPipeFlow(nn.Module):
             self.dx.clone()*(x[:,:,:,-2].clone()-x[:,:,:,-3].clone())
         x = self.tanh(x)
 
-        pars = self.conv1(x)
+        pars = self.conv_par_in(x)
         pars = self.activation(pars)
-        pars = self.batch_norm_pars1(pars)
-        pars = self.conv2(pars)
-        pars = self.activation(pars)
-        pars = self.batch_norm_pars2(pars)
-        pars = self.conv3(pars)
-        pars = self.activation(pars)
-        pars = self.batch_norm_pars3(pars)
-        pars = self.conv4(pars)
-        pars = self.activation(pars)
-        pars = self.batch_norm_pars4(pars)
+        for i in range(3):
+            pars = self.batch_norm_pars[i](x)
+            pars = self.conv_par[i](pars)
+            pars = self.activation(pars)
+        pars = self.batch_norm_pars_out(pars)
 
         pars = pars.view(-1,self.par_neurons[-4]*2*2)
         pars = self.pars_linear_layer1(pars)
         pars = self.activation(pars)
-        #pars = self.pars_linear_layer2(pars)
-        #pars = self.activation(pars)
-        #pars = self.pars_linear_layer3(pars)
-        #pars = self.activation(pars)
-        pars = self.pars_linear_layer4(pars)
-        #pars = self.relu(pars)
+        pars = self.pars_linear_layer2(pars)
         pars = self.sigmoid(pars)
-        '''
-        pars = self.flatten(x)
-        
-        for i in range(0,len(self.par_neurons)-1):
-            pars = self.par_linear[i](pars)
-            pars = self.activation(pars)
 
-        pars = self.par_linear_layer_out(pars)
-        pars = self.tanh(pars)
-        '''
         return x, pars
 
 class ParameterCriticPipeFlow(nn.Module):
     def __init__(self, critic_channels, parameter_dim, state_neurons,
-                 par_neurons, combined_neurons):
+                 par_neurons, combined_neurons, activation=None):
         super().__init__()
 
         self.channels = critic_channels
@@ -166,7 +136,7 @@ class ParameterCriticPipeFlow(nn.Module):
 
         self.parameter_dim = parameter_dim
 
-        self.activation = nn.LeakyReLU(0.2)
+        self.activation = activation
 
         self.conv = nn.ModuleList()
         for i in range(len(self.channels) - 1):

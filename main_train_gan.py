@@ -10,7 +10,7 @@ import models.GAN_models as GAN_models
 from utils.load_checkpoint import load_checkpoint
 from transforms.transform_data import transform_data
 from utils.seed_everything import seed_everything
-from training.training_GAN import TrainGAN
+from training.training_GAN import TrainParGAN
 
 torch.set_default_dtype(torch.float64)
 
@@ -50,21 +50,22 @@ if __name__ == "__main__":
                          'shuffle': True,
                          'num_workers': 2,
                          'drop_last': True}
+
     generator_params = {'latent_dim': latent_dim,
                         'par_dim': 1,
                         'output_dim': (2,256),
                         'activation': activation,
-                        'n_neurons': [16, 32, 64],
-                        'par_neurons': [8, 8]}
-
+                        'gen_channels': [128, 64, 32, 16, 8, 4],
+                        'par_neurons': [8, 8, 8, 8]}
     critic_params = {'activation': activation,
-                     'n_neurons': [64, 32, 16]}
-                     
-    critic_params['input_dim'] = {"state_dim": generator_params['output_dim'],
-                                  "par_dim": generator_params['par_dim']}
+                     'critic_channels': [64, 32, 16],
+                     'par_dim': 1,
+                     'state_neurons': [16, 8, 4],
+                     'par_neurons': [16, 8, 4],
+                     'combined_neurons': [16, 8, 4]}
 
-    generator = GAN_models.Generator(**generator_params).to(device)
-    critic = GAN_models.Critic(**critic_params).to(device)
+    generator = GAN_models.ParameterGeneratorPipeFlow(**generator_params).to(device)
+    critic = GAN_models.ParameterCriticPipeFlow(**critic_params).to(device)
 
     dataloader = get_dataloader(**dataloader_params)
     pdb.set_trace()
