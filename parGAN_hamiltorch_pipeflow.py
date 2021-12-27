@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 import hamiltorch
-import GAN_models
+import models.GAN_models as GAN_models
 import pdb
 import matplotlib.patches as patches
 from scipy.ndimage.filters import convolve
