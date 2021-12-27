@@ -8,10 +8,10 @@ import torch.optim as optim
 import numpy as np
 import matplotlib
 # import data_loading
-import GAN_models
+import models.GAN_models as GAN_models
 import os
 
-from training_WGAN_GP import TrainParGAN
+from training.training_WGAN_GP import TrainParGAN
 from torch.utils.data import DataLoader
 from matplotlib import pyplot as plt
 
