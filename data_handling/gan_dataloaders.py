@@ -28,10 +28,10 @@ class NetworkDataset(torch.utils.data.Dataset):
         return self.num_files
 
     def __getitem__(self, idx):
-        data = np.load(f"{self.data_path_state}{idx}")
+        data = np.load(f"{self.data_path_state}{idx}.npy")
         if self.transformer is not None:
             data = self.transform_state(data)
-        pars = 1.
+        pars = torch.tensor([1.])
         return data, pars
 
 def get_dataloader(data_path,

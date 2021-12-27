@@ -69,20 +69,20 @@ class ParameterGeneratorPipeFlow(nn.Module):
 
         self.conv_par = nn.ModuleList()
         self.batch_norm_pars = nn.ModuleList()
-        for i in range(len(self.par_neurons)-2):
-            self.batch_norm_pars.append(nn.BatchNorm2d(par_neurons[-i-1]))
-            self.conv_par.append(nn.Conv2d(in_channels=par_neurons[-i-1],
-                               out_channels=par_neurons[-i-2],
+        for i in range(1,len(self.par_neurons)):
+            self.batch_norm_pars.append(nn.BatchNorm2d(par_neurons[-i]))
+            self.conv_par.append(nn.Conv2d(in_channels=par_neurons[-i],
+                               out_channels=par_neurons[-i-1],
                                kernel_size=5,
                                stride=3,
                                padding=0,
                                bias=True))
-        self.batch_norm_pars_out = nn.BatchNorm2d(par_neurons[-4])
+        self.batch_norm_pars_out = nn.BatchNorm2d(par_neurons[-i-1])
 
-        self.pars_linear_layer1 = nn.Linear(in_features=par_neurons[-4]*2*2,
+        self.pars_linear_layer1 = nn.Linear(in_features=par_neurons[-i-1]*2*2,
                                        out_features=par_neurons[-1])
         self.pars_linear_layer2 = nn.Linear(in_features=par_neurons[-1],
-                                            out_features=par_dim,
+                                            out_features=self.par_dim,
                                             bias=True)
         self.dx = torch.tensor(7.8125)
     def forward(self, z):
@@ -103,8 +103,8 @@ class ParameterGeneratorPipeFlow(nn.Module):
 
         pars = self.conv_par_in(x)
         pars = self.activation(pars)
-        for i in range(3):
-            pars = self.batch_norm_pars[i](x)
+        for i in range(len(self.par_neurons)-1):
+            pars = self.batch_norm_pars[i](pars)
             pars = self.conv_par[i](pars)
             pars = self.activation(pars)
         pars = self.batch_norm_pars_out(pars)
@@ -114,27 +114,23 @@ class ParameterGeneratorPipeFlow(nn.Module):
         pars = self.activation(pars)
         pars = self.pars_linear_layer2(pars)
         pars = self.sigmoid(pars)
-
         return x, pars
 
 class ParameterCriticPipeFlow(nn.Module):
-    def __init__(self, critic_channels, parameter_dim, state_neurons,
-                 par_neurons, combined_neurons, activation=None):
+    def __init__(self, critic_channels, par_dim, combined_neurons,
+                activation=None):
         super().__init__()
 
         self.channels = critic_channels
         self.channels.reverse()
         self.channels.insert(0, 2)
-        self.state_neurons = state_neurons
-        self.par_neurons = par_neurons
         self.combined_neurons = combined_neurons
+        self.par_dim = par_dim
 
         dilation = 1
         padding = 0
         kernel_size = 3
         stride = 2
-
-        self.parameter_dim = parameter_dim
 
         self.activation = activation
 
@@ -149,33 +145,19 @@ class ParameterCriticPipeFlow(nn.Module):
 
         dim_out = 256
         for i in range(len(self.channels) - 1):
-            dim_out = torch.floor(torch.tensor((dim_out + 2 * padding - dilation\
+            dim_out = np.floor(((dim_out + 2 * padding - dilation\
                 * (kernel_size - 1)- 1) / stride + 1))
-        self.dim_out = int(dim_out)
+        self.dim_out = torch.tensor(int(dim_out))
 
         self.flatten = nn.Flatten()
-
-        self.state_neurons.insert(0,self.dim_out*self.dim_out*self.channels[-1])
-        self.par_neurons.insert(0,1)
-
-        self.combined_neurons.insert(0,self.dim_out*self.dim_out*self.channels[-1]+1)#self.par_neurons[-1]+self.state_neurons[-1])
-        self.combined_neurons.append(1)
+        self.combined_neurons.insert(0,self.dim_out*self.dim_out*self.channels[-1]+1)
+        self.combined_neurons.append(self.par_dim)
 
         self.combined_bias = [True for i in range(len(self.combined_neurons)-1)]
         self.combined_bias.append(False)
 
-        self.state_linear = nn.ModuleList()
-        self.par_linear = nn.ModuleList()
         self.combined_linear = nn.ModuleList()
 
-        for i in range(len(self.state_neurons) - 1):
-            self.state_linear.append(nn.Linear(in_features=self.state_neurons[i],
-                                               out_features=self.state_neurons[i + 1],
-                                               bias=True))
-        for i in range(len(self.par_neurons) - 1):
-            self.par_linear.append(nn.Linear(in_features=self.par_neurons[i],
-                                               out_features=self.par_neurons[i + 1],
-                                               bias=True))
         for i in range(len(self.combined_neurons) - 1):
             self.combined_linear.append(nn.Linear(in_features=self.combined_neurons[i],
                                              out_features=self.combined_neurons[i + 1],
@@ -190,14 +172,6 @@ class ParameterCriticPipeFlow(nn.Module):
             x = self.activation(x)
 
         x = self.flatten(x)
-        #for i in range(0, len(self.state_neurons) - 1):
-        #    x = self.state_linear[i](x)
-        #    x = self.activation(x)
-
-        #for i in range(0, len(self.par_neurons) - 1):
-        #    par = self.par_linear[i](par)
-        #    par = self.activation(par)
-
         out = torch.cat([x,par],dim=1)
 
         out = self.combined_linear[0](out)

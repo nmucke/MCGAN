@@ -23,6 +23,7 @@ if __name__ == "__main__":
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     else:
         device = 'cpu'
+    
     print(f'Training GAN on {device}')
 
     data_path = 'test_data/pipe_flow_state_data_'
@@ -39,36 +40,33 @@ if __name__ == "__main__":
     training_params = {'latent_dim': latent_dim,
                        'n_critic': 5,
                        'gamma': 10,
-                       'n_epochs': 10000,
+                       'n_epochs': 10,
                        'save_string': save_string,
                        'device': device}
     optimizer_params = {'learning_rate': 1e-4}
     dataloader_params = {'data_path': data_path,
-                         'num_files': 100000,
+                         'num_files': 10,
                          'transformer': transformer,
-                         'batch_size': 512,
+                         'batch_size': 2,
                          'shuffle': True,
                          'num_workers': 2,
                          'drop_last': True}
 
     generator_params = {'latent_dim': latent_dim,
                         'par_dim': 1,
-                        'output_dim': (2,256),
+                        'output_dim': (2, 256, 256),
                         'activation': activation,
                         'gen_channels': [128, 64, 32, 16, 8, 4],
-                        'par_neurons': [8, 8, 8, 8]}
+                        'par_neurons': [8, 16, 32, 64]}
     critic_params = {'activation': activation,
                      'critic_channels': [64, 32, 16],
                      'par_dim': 1,
-                     'state_neurons': [16, 8, 4],
-                     'par_neurons': [16, 8, 4],
                      'combined_neurons': [16, 8, 4]}
 
     generator = GAN_models.ParameterGeneratorPipeFlow(**generator_params).to(device)
     critic = GAN_models.ParameterCriticPipeFlow(**critic_params).to(device)
 
     dataloader = get_dataloader(**dataloader_params)
-    pdb.set_trace()
 
     if train_WGAN:
 
@@ -81,12 +79,11 @@ if __name__ == "__main__":
             load_checkpoint(load_string, generator, critic,
                             generator_optimizer, critic_optimizer)
 
-        trainer = TrainGAN(generator=generator,
+        trainer = TrainParGAN(generator=generator,
                            critic=critic,
                            generator_optimizer=generator_optimizer,
                            critic_optimizer=critic_optimizer,
                            **training_params)
-
 
         generator_loss, critic_loss, gradient_penalty = trainer.train(
                 data_loader=dataloader)

@@ -13,7 +13,8 @@ from tqdm import tqdm
 
 class TrainParGAN():
     def __init__(self, generator, critic, generator_optimizer, critic_optimizer,
-                 latent_dim=100, n_critic=5, gamma=10, device='cpu'):
+                 latent_dim=100, n_critic=5, gamma=10, save_string='GAN',
+                 n_epochs=100, device='cpu'):
 
         self.to_pil_image = transforms.ToPILImage()
 
@@ -23,6 +24,9 @@ class TrainParGAN():
         self.G_opt = generator_optimizer
         self.C_opt = critic_optimizer
 
+        self.n_epochs = n_epochs
+        self.save_string = save_string
+
         self.generator.train(mode=True)
         self.critic.train(mode=True)
 
@@ -31,19 +35,7 @@ class TrainParGAN():
         self.gamma = gamma
         self.fixed_z = torch.randn(64, self.latent_dim).to(self.device)
 
-        self.edge_detection_filter = torch.zeros((3,5))
-        self.edge_detection_filter[1,0] = 5
-        self.edge_detection_filter[1,-1] = -5
-        self.edge_detection_filter = self.edge_detection_filter.reshape(1,1,3,5)
-        self.edge_detection_filter = self.edge_detection_filter.to(self.device)
-
-        self.par_loss_regularizer = 1e-6
-
-        self.par_loss = nn.MSELoss()
-
-        self.x_vec = torch.linspace(0,1,256, device=self.device)
-
-    def train(self, data_loader, n_epochs, save_string):
+    def train(self, data_loader):
         """Train generator and critic"""
 
         self.num_data_channels = data_loader.dataset[0][0].shape[0]
@@ -52,7 +44,7 @@ class TrainParGAN():
         generator_loss = []
         critic_loss = []
         gradient_penalty = []
-        for epoch in range(1, n_epochs + 1):
+        for epoch in range(1, self.n_epochs + 1):
 
             # Train one step
             g_loss, c_loss, grad_penalty = self.train_epoch(data_loader)
@@ -72,7 +64,7 @@ class TrainParGAN():
             del _
             generated_img = make_grid(generated_img[:,0:1])
             images.append(generated_img)
-            self.save_generator_image(generated_img,f"outputs_WGAN/gen_img{epoch}.png")
+            self.save_generator_image(generated_img,f"outputs_GAN/gen_img{epoch}.png")
 
             # Save generator and critic weights
             torch.save({
@@ -80,11 +72,11 @@ class TrainParGAN():
                 'critic_state_dict': self.critic.state_dict(),
                 'generator_optimizer_state_dict': self.G_opt.state_dict(),
                 'critic_optimizer_state_dict': self.C_opt.state_dict(),
-                }, 'model_weights/' + save_string)
+                }, self.save_string)
 
         # save the generated images as GIF file
         imgs = [np.array(self.to_pil_image(img)) for img in images]
-        imageio.mimsave('outputs_WGAN/generator_images.gif', imgs)
+        imageio.mimsave('outputs_GAN/generator_images.gif', imgs)
 
         # Save generator and critic weights
 
@@ -93,7 +85,7 @@ class TrainParGAN():
             'critic_state_dict': self.critic.state_dict(),
             'generator_optimizer_state_dict': self.G_opt.state_dict(),
             'critic_optimizer_state_dict': self.C_opt.state_dict(),
-            }, 'model_weights/' + save_string)
+            }, self.save_string)
 
         self.generator.train(mode=False)
         self.critic.train(mode=False)
@@ -111,7 +103,6 @@ class TrainParGAN():
             real_data = real_data.to(self.device)
             parameters = parameters.to(self.device)
 
-            #for i in range(self.n_critic):
             c_loss, grad_penalty = self.critic_train_step(real_data, parameters)
 
             if bidx % self.n_critic == 0:
@@ -124,7 +115,9 @@ class TrainParGAN():
 
         self.C_opt.zero_grad()
         batch_size = data.size(0)
+
         generated_data, generated_pars = self.sample(batch_size)
+
         grad_penalty = self.gradient_penalty(data, generated_data,
                                              parameters, generated_pars)
         c_loss = self.critic(generated_data,generated_pars).mean() \
@@ -196,13 +189,6 @@ class TrainParGAN():
         """Save image"""
         save_image(image, path)
 
-    def compute_edge_location(self,X):
-        """Compute the location of the discontinuity"""
-
-        res = nn.functional.conv2d(X[:,0:1], self.edge_detection_filter)
-        res = res.sum(dim=2)
-
-        return res.argmax(dim=-1)/256
 
 
 
