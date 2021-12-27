@@ -29,7 +29,7 @@ if __name__ == "__main__":
     data_path = 'test_data/pipe_flow_state_data_'
 
     train_WGAN = True
-    continue_training = False
+    continue_training = True
     load_string = 'model_weights/GAN'
     save_string = 'model_weights/GAN'
 
