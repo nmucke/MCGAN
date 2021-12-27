@@ -11,7 +11,7 @@ import matplotlib
 import models.GAN_models as GAN_models
 import os
 
-from training.training_WGAN_GP import TrainParGAN
+from training.training_GAN import TrainParGAN
 from torch.utils.data import DataLoader
 from matplotlib import pyplot as plt
 
