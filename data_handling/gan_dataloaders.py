@@ -1,3 +1,5 @@
+import pdb
+
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
@@ -6,37 +8,55 @@ import torch
 
 
 class NetworkDataset(torch.utils.data.Dataset):
+    def __init__(self, data_path, num_files=10,
+                 transformer_state=None, transformer_pars=None):
 
-    def __init__(self, data_path, num_files=10, transformer=None):
-
-        self.data_path_state = data_path
+        self.data_path_state = data_path + 'state/pipe_flow_state_data_'
+        self.data_path_pars = data_path + 'parameters/pipe_flow_parameter_data_'
         self.num_files = num_files
-        self.transformer = transformer
+        self.transformer_state = transformer_state
+        self.transformer_pars = transformer_pars
 
         self.state_IDs = [i for i in range(self.num_files)]
 
-        if self.transformer is not None:
-            self.transform = transformer
+        if self.transformer_state is not None:
+            self.transformer_state = transformer_state
+
+        if self.transformer_pars is not None:
+            self.transformer_pars = transformer_pars
 
     def transform_state(self, data):
-        return self.transform.min_max_transform(data)
+        return self.transformer_state.min_max_transform(data)
 
     def inverse_transform_state(self, data):
-        return self.transform.min_max_inverse_transform(data)
+        return self.transformer_state.min_max_inverse_transform(data)
+
+    def transform_pars(self, data):
+        return self.transformer_pars.min_max_transform(data)
+
+    def inverse_transform_pars(self, data):
+        return self.transformer_pars.min_max_inverse_transform(data)
 
     def __len__(self):
         return self.num_files
 
     def __getitem__(self, idx):
-        data = np.load(f"{self.data_path_state}{idx}.npy")
-        if self.transformer is not None:
-            data = self.transform_state(data)
-        pars = torch.tensor([1.])
-        return data, pars
+        state = np.load(f"{self.data_path_state}{idx}.npy", allow_pickle=True)
+        if self.transformer_state is not None:
+            state = self.transform_state(state)
+        state = torch.tensor(state).float()
+
+        pars = np.load(f"{self.data_path_pars}{idx}.npy", allow_pickle=True)
+        pars = np.asarray([pars[1:2][0][0]])
+        if self.transformer_pars is not None:
+            pars = self.transform_pars(pars)
+        pars = torch.tensor(pars).float()
+        return state, pars
 
 def get_dataloader(data_path,
                     num_files=100000,
-                    transformer=None,
+                    transformer_state=None,
+                    transformer_pars=None,
                     batch_size=512,
                     shuffle=True,
                     num_workers=2,
@@ -45,7 +65,8 @@ def get_dataloader(data_path,
 
     dataset = NetworkDataset(data_path=data_path,
                              num_files=num_files,
-                             transformer=transformer)
+                             transformer_state=transformer_state,
+                             transformer_pars=transformer_pars)
     dataloader = torch.utils.data.DataLoader(dataset,
                                                batch_size=batch_size,
                                                shuffle=shuffle,

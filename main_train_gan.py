@@ -8,11 +8,11 @@ import torch
 from data_handling.gan_dataloaders import get_dataloader
 import models.GAN_models as GAN_models
 from utils.load_checkpoint import load_checkpoint
-from transforms.transform_data import transform_data
+from transforms.transform_data import transform_state, transform_pars
 from utils.seed_everything import seed_everything
 from training.training_GAN import TrainParGAN
 
-torch.set_default_dtype(torch.float64)
+torch.set_default_dtype(torch.float32)
 
 if __name__ == "__main__":
 
@@ -26,30 +26,32 @@ if __name__ == "__main__":
     
     print(f'Training GAN on {device}')
 
-    data_path = 'test_data/pipe_flow_state_data_'
+    data_path = 'data/pipe_flow_data_'
 
     train_WGAN = True
     continue_training = True
     load_string = 'model_weights/GAN'
     save_string = 'model_weights/GAN'
 
-    latent_dim = 32
+    latent_dim = 50
     activation = nn.LeakyReLU()
-    transformer = None#transform_data(a=-1, b=-1)
+    transformer_state = transform_state(a=-1, b=1)
+    transformer_pars = transform_pars(a=-1, b=1)
 
     training_params = {'latent_dim': latent_dim,
-                       'n_critic': 5,
-                       'gamma': 10,
-                       'n_epochs': 10,
+                       'n_critic': 2,
+                       'gamma': 5,
+                       'n_epochs': 1000,
                        'save_string': save_string,
                        'device': device}
     optimizer_params = {'learning_rate': 1e-4}
     dataloader_params = {'data_path': data_path,
-                         'num_files': 10,
-                         'transformer': transformer,
-                         'batch_size': 2,
+                         'num_files': 100000,
+                         'transformer_state': transformer_state,
+                         'transformer_pars': transformer_pars,
+                         'batch_size': 64,
                          'shuffle': True,
-                         'num_workers': 2,
+                         'num_workers': 8,
                          'drop_last': True}
 
     generator_params = {'latent_dim': latent_dim,
@@ -80,10 +82,10 @@ if __name__ == "__main__":
                             generator_optimizer, critic_optimizer)
 
         trainer = TrainParGAN(generator=generator,
-                           critic=critic,
-                           generator_optimizer=generator_optimizer,
-                           critic_optimizer=critic_optimizer,
-                           **training_params)
+                              critic=critic,
+                              generator_optimizer=generator_optimizer,
+                              critic_optimizer=critic_optimizer,
+                              **training_params)
 
         generator_loss, critic_loss, gradient_penalty = trainer.train(
                 data_loader=dataloader)
