@@ -113,7 +113,7 @@ class ParameterGeneratorPipeFlow(nn.Module):
         pars = self.pars_linear_layer1(pars)
         pars = self.activation(pars)
         pars = self.pars_linear_layer2(pars)
-        pars = self.sigmoid(pars)
+        pars = self.tanh(pars)
         return x, pars
 
 class ParameterCriticPipeFlow(nn.Module):

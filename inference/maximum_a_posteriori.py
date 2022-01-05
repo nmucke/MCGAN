@@ -1,10 +1,6 @@
 import pdb
-
-import numpy as np
-import matplotlib.pyplot as plt
 import torch.nn as nn
 import torch.optim as optim
-import torch
 from tqdm import tqdm
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
@@ -17,7 +13,6 @@ def compute_MAP(z, observations, generator, obs_operator,
     loss = nn.MSELoss()
 
     if inverse_transformer_state is not None:
-
         scheduler = ReduceLROnPlateau(optimizer, factor=0.9, patience=500,min_lr=0.001)
         with tqdm(range(num_iters), mininterval=3.,postfix=['Loss', dict(loss="0")]) as pbar:
             for epoch in pbar:
@@ -30,8 +25,8 @@ def compute_MAP(z, observations, generator, obs_operator,
 
                 scheduler.step(error)
                 pbar.postfix[1] = f"{error.item():.3f}"
-    else:
 
+    else:
         scheduler = ReduceLROnPlateau(optimizer, factor=0.9, patience=500,min_lr=0.001)
         with tqdm(range(num_iters), mininterval=3.,postfix=['Loss', dict(loss="0")]) as pbar:
             for epoch in pbar:

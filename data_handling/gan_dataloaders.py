@@ -1,8 +1,5 @@
 import pdb
-
 import numpy as np
-import torch.nn as nn
-import torch.optim as optim
 import torch
 
 
@@ -42,9 +39,9 @@ class NetworkDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         state = np.load(f"{self.data_path_state}{idx}.npy", allow_pickle=True)
+        state = torch.tensor(state).float()
         if self.transformer_state is not None:
             state = self.transform_state(state)
-        state = torch.tensor(state).float()
 
         pars = np.load(f"{self.data_path_pars}{idx}.npy", allow_pickle=True)
         pars = np.asarray([pars[1:2][0][0]])

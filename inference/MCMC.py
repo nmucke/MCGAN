@@ -1,9 +1,4 @@
 import pdb
-
-import numpy as np
-import matplotlib.pyplot as plt
-import torch.nn as nn
-import torch.optim as optim
 import torch
 import hamiltorch
 
@@ -14,8 +9,8 @@ def latent_posterior(z, generator, obs_operator, observations,
     z_prior_score = torch.distributions.Normal(prior_mean,
                                                prior_std).log_prob(z).sum()
 
-    generated_state = generator(z.view(1, len(z)))
-    gen_measurement = obs_operator(generated_state[0])
+    generated_state = inverse_transformer_state(generator(z.view(1, len(z)))[0])
+    gen_measurement = obs_operator(generated_state)
     error = observations - gen_measurement
     error = error.detach()
     reconstruction_score = torch.distributions.Normal(noise_mean,

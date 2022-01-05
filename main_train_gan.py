@@ -1,9 +1,5 @@
 import pdb
-
-import numpy as np
-import matplotlib.pyplot as plt
 import torch.nn as nn
-import torch.optim as optim
 import torch
 from data_handling.gan_dataloaders import get_dataloader
 import models.GAN_models as GAN_models
@@ -29,7 +25,7 @@ if __name__ == "__main__":
     data_path = 'data/pipe_flow_data_'
 
     train_WGAN = True
-    continue_training = True
+    continue_training = False
     load_string = 'model_weights/GAN'
     save_string = 'model_weights/GAN'
 
@@ -61,9 +57,9 @@ if __name__ == "__main__":
                         'gen_channels': [128, 64, 32, 16, 8, 4],
                         'par_neurons': [8, 16, 32, 64]}
     critic_params = {'activation': activation,
-                     'critic_channels': [64, 32, 16],
+                     'critic_channels': [128, 64, 32, 16, 8, 4],
                      'par_dim': 1,
-                     'combined_neurons': [16, 8, 4]}
+                     'combined_neurons': [64, 32, 16, 8, 4]}
 
     generator = GAN_models.ParameterGeneratorPipeFlow(**generator_params).to(device)
     critic = GAN_models.ParameterCriticPipeFlow(**critic_params).to(device)

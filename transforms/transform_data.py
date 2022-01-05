@@ -3,10 +3,11 @@ import numpy as np
 import torch
 
 class transform_state():
-    def __init__(self, a=-1, b=1):
+    def __init__(self, a=-1, b=1, device='cpu'):
         super(transform_state, self).__init__()
         self.a = a
         self.b = b
+        self.device = device
 
         max_min_vec = np.load('transforms/max_min_data.npy', allow_pickle=True)
         self.max_vec = max_min_vec.item()['max_vec']
@@ -14,7 +15,7 @@ class transform_state():
 
     def min_max_transform(self, data):
 
-        transformed_state = np.zeros(data.shape)
+        transformed_state = torch.zeros(data.shape, device=self.device)
         if len(data.shape) == 2:
             transformed_state = self.a + (data-self.min_vec[0])\
                                 *(self.b-self.a)/(self.max_vec[0]-self.min_vec[0])
@@ -35,7 +36,7 @@ class transform_state():
 
     def min_max_inverse_transform(self, data):
 
-        transformed_state = torch.zeros(data.shape)
+        transformed_state = torch.zeros(data.shape, device=self.device)
         if len(data.shape) == 2:
             transformed_state = (data-self.a)*(self.max_vec[0]-self.min_vec[0]) \
                   /(self.b-self.a) + self.min_vec[0]
