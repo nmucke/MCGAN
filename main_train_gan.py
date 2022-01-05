@@ -54,10 +54,10 @@ if __name__ == "__main__":
                         'par_dim': 1,
                         'output_dim': (2, 256, 256),
                         'activation': activation,
-                        'gen_channels': [128, 64, 32, 16, 8, 4],
-                        'par_neurons': [8, 16, 32, 64]}
+                        'gen_channels': [256, 128, 64, 32, 16, 8],
+                        'par_neurons': [64, 32, 16, 8]}
     critic_params = {'activation': activation,
-                     'critic_channels': [128, 64, 32, 16, 8, 4],
+                     'critic_channels': [256, 128, 64, 32, 16, 8],
                      'par_dim': 1,
                      'combined_neurons': [64, 32, 16, 8, 4]}
 

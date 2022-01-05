@@ -5,7 +5,7 @@ import torch.optim as optim
 import torch
 import pdb
 from torch.nn.utils import spectral_norm
-
+import time
 
 def normal_init(m, mean, std):
     if isinstance(m, (nn.Linear, nn.Conv2d)):
@@ -21,6 +21,8 @@ class ParameterGeneratorPipeFlow(nn.Module):
     def __init__(self, latent_dim, par_dim, gen_channels, par_neurons, 
                  output_dim=(2,256), activation=None):
         super().__init__()
+        self.t_state = 0
+        self.t_pars = 0
 
         self.latent_dim = latent_dim
         self.par_dim = par_dim
@@ -93,19 +95,19 @@ class ParameterGeneratorPipeFlow(nn.Module):
         x = self.batch_norm[0](x)
 
         x = self.deconv[0](x)
-        for i in range(1,len(self.channels)-1):
+        for (batch_norm, deconv) in zip(self.batch_norm[1:], self.deconv[1:]):
             x = self.activation(x)
-            x = self.batch_norm[i](x)
-            x = self.deconv[i](x)
+            x = batch_norm(x)
+            x = deconv(x)
         x[:,:,:,-1] = x[:,:,:,-3].clone() + \
             self.dx.clone()*(x[:,:,:,-2].clone()-x[:,:,:,-3].clone())
         x = self.tanh(x)
 
         pars = self.conv_par_in(x)
         pars = self.activation(pars)
-        for i in range(len(self.par_neurons)-1):
-            pars = self.batch_norm_pars[i](pars)
-            pars = self.conv_par[i](pars)
+        for (batch_norm, conv_par) in zip(self.batch_norm_pars, self.conv_par):
+            pars = batch_norm(pars)
+            pars = conv_par(pars)
             pars = self.activation(pars)
         pars = self.batch_norm_pars_out(pars)
 

@@ -13,47 +13,82 @@ class transform_state():
         self.max_vec = max_min_vec.item()['max_vec']
         self.min_vec = max_min_vec.item()['min_vec']
 
-    def min_max_transform(self, data):
+    def min_max_transform(self, data, velocity_or_pressure='both'):
 
-        transformed_state = torch.zeros(data.shape, device=self.device)
         if len(data.shape) == 2:
-            transformed_state = self.a + (data-self.min_vec[0])\
-                                *(self.b-self.a)/(self.max_vec[0]-self.min_vec[0])
+            if velocity_or_pressure == 'velocity':
+                data = self.a + (data-self.min_vec[0])\
+                        *(self.b-self.a)/(self.max_vec[0]-self.min_vec[0])
+            elif velocity_or_pressure == 'pressure':
+                data = self.a + (data-self.min_vec[1])\
+                        *(self.b-self.a)/(self.max_vec[1]-self.min_vec[1])
 
         elif len(data.shape) == 3:
-            transformed_state[0] = self.a + (data[0] - self.min_vec[0]) * (self.b - self.a) \
-                                   /(self.max_vec[0] - self.min_vec[0])
-            transformed_state[1] = self.a + (data[1]-self.min_vec[1])*(self.b-self.a) \
-                                     /(self.max_vec[1]-self.min_vec[1])
+            if velocity_or_pressure == 'velocity':
+                data[0] = self.a + (data[0] - self.min_vec[0]) * (self.b - self.a) \
+                                       /(self.max_vec[0] - self.min_vec[0])
+            elif velocity_or_pressure == 'pressure':
+                data[1] = self.a + (data[1]-self.min_vec[1])*(self.b-self.a) \
+                                         /(self.max_vec[1]-self.min_vec[1])
+            elif velocity_or_pressure == 'both':
+                data[0] = self.a + (data[0] - self.min_vec[0]) * (self.b - self.a) \
+                                       /(self.max_vec[0] - self.min_vec[0])
+                data[1] = self.a + (data[1]-self.min_vec[1])*(self.b-self.a) \
+                                         /(self.max_vec[1]-self.min_vec[1])
 
         elif len(data.shape) == 4:
-            transformed_state[:, 0] = self.a + (data[:, 0] - self.min_vec[0]) * (self.b - self.a) \
+            if velocity_or_pressure == 'velocity':
+                data[:, 0] = self.a + (data[:, 0] - self.min_vec[0]) * (self.b - self.a) \
                                    / (self.max_vec[0] - self.min_vec[0])
-            transformed_state[:, 1] = self.a + (data[:, 1] - self.min_vec[1]) * (self.b - self.a) \
+            elif velocity_or_pressure == 'pressure':
+                data[:, 1] = self.a + (data[:, 1] - self.min_vec[1]) * (self.b - self.a) \
                                    / (self.max_vec[1] - self.min_vec[1])
+            elif velocity_or_pressure == 'both':
+                data[:, 0] = self.a + (data[:, 0] - self.min_vec[0]) * (self.b - self.a) \
+                                       / (self.max_vec[0] - self.min_vec[0])
+                data[:, 1] = self.a + (data[:, 1] - self.min_vec[1]) * (self.b - self.a) \
+                                       / (self.max_vec[1] - self.min_vec[1])
 
-        return transformed_state
+        return data
 
-    def min_max_inverse_transform(self, data):
+    def min_max_inverse_transform(self, data, velocity_or_pressure='both'):
 
-        transformed_state = torch.zeros(data.shape, device=self.device)
         if len(data.shape) == 2:
-            transformed_state = (data-self.a)*(self.max_vec[0]-self.min_vec[0]) \
-                  /(self.b-self.a) + self.min_vec[0]
+            if velocity_or_pressure == 'velocity':
+                data = (data-self.a)*(self.max_vec[0]-self.min_vec[0]) \
+                        /(self.b-self.a) + self.min_vec[0]
+            elif velocity_or_pressure == 'pressure':
+                data = (data-self.a)*(self.max_vec[1]-self.min_vec[1]) \
+                        /(self.b-self.a) + self.min_vec[1]
 
         elif len(data.shape) == 3:
-            transformed_state[0] = (data[0]-self.a)*(self.max_vec[0]-self.min_vec[0]) \
-                                    /(self.b-self.a) + self.min_vec[0]
-            transformed_state[1] = (data[1]-self.a)*(self.max_vec[1]-self.min_vec[1]) \
-                                    /(self.b-self.a) + self.min_vec[1]
 
-        elif len(data.shape) == 4:
-            transformed_state[:, 0] = (data[:, 0]-self.a)*(self.max_vec[0]-self.min_vec[0]) \
+            if velocity_or_pressure == 'velocity':
+                data[0] = (data[0]-self.a)*(self.max_vec[0]-self.min_vec[0]) \
+                                    /(self.b-self.a) + self.min_vec[0]
+            elif velocity_or_pressure == 'pressure':
+                data[1] = (data[1]-self.a)*(self.max_vec[1]-self.min_vec[1]) \
+                                    /(self.b-self.a) + self.min_vec[1]
+            elif velocity_or_pressure == 'both':
+                data[0] = (data[0]-self.a)*(self.max_vec[0]-self.min_vec[0]) \
                                         /(self.b-self.a) + self.min_vec[0]
-            transformed_state[:, 1] = (data[:, 1]-self.a)*(self.max_vec[1]-self.min_vec[1]) \
+                data[1] = (data[1]-self.a)*(self.max_vec[1]-self.min_vec[1]) \
                                         /(self.b-self.a) + self.min_vec[1]
 
-        return transformed_state
+        elif len(data.shape) == 4:
+            if velocity_or_pressure == 'velocity':
+                data[:, 0] = (data[:, 0]-self.a)*(self.max_vec[0]-self.min_vec[0]) \
+                                        /(self.b-self.a) + self.min_vec[0]
+            elif velocity_or_pressure == 'pressure':
+                data[:, 1] = (data[:, 1]-self.a)*(self.max_vec[1]-self.min_vec[1]) \
+                                        /(self.b-self.a) + self.min_vec[1]
+            elif velocity_or_pressure == 'both':
+                data[:, 0] = (data[:, 0]-self.a)*(self.max_vec[0]-self.min_vec[0]) \
+                                            /(self.b-self.a) + self.min_vec[0]
+                data[:, 1] = (data[:, 1]-self.a)*(self.max_vec[1]-self.min_vec[1]) \
+                                            /(self.b-self.a) + self.min_vec[1]
+
+        return data
 
 class transform_pars():
     def __init__(self, a=-1, b=1):

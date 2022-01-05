@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     seed_everything()
 
-    cuda = True
+    cuda = False
     if cuda:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     else:
@@ -45,7 +45,10 @@ if __name__ == "__main__":
 
     domain = {'xmin': 0,
               'xmax': 2000,
-              'numx': 256}
+              'numx': 256,
+              'tmin': 0,
+              'tmax': 1.1*60,
+              'numt': 256}
 
     latent_dim = 50
     activation = nn.LeakyReLU()
@@ -56,8 +59,8 @@ if __name__ == "__main__":
                         'par_dim': 1,
                         'output_dim': (2, 256, 256),
                         'activation': activation,
-                        'gen_channels': [128, 64, 32, 16, 8, 4],
-                        'par_neurons': [8, 16, 32, 64]}
+                        'gen_channels': [256, 128, 64, 32, 16, 8],
+                        'par_neurons': [64, 32, 16, 8]}
 
     generator = GAN_models.ParameterGeneratorPipeFlow(**generator_params)
     load_checkpoint(load_string, generator)
@@ -76,9 +79,9 @@ if __name__ == "__main__":
     true_pars = torch.tensor(true_pars)
 
 
-    obs_x, obs_y = range(0,256,10), range(0,256,10)
-    obs_x, obs_y = np.meshgrid(obs_x, obs_y)
-    obs_idx = (1, obs_x, obs_y)
+    obs_t, obs_x =  range(0,256), np.array([10,246])
+    obs_t, obs_x = np.meshgrid(obs_t, obs_x)
+    obs_idx = [1, obs_t, obs_x]
     obs_std = 1e3
 
     obs_operator = lambda obs: observation_operator(obs, obs_idx)
@@ -93,8 +96,9 @@ if __name__ == "__main__":
                         observations=observations,
                         generator=generator,
                         obs_operator=obs_operator,
+                        obs_std=obs_std,
                         inverse_transformer_state=transformer_state.min_max_inverse_transform,
-                        num_iters=1000)
+                        num_iters=500)
 
     obs_error = torch.linalg.norm(observations-\
                   obs_operator(generator(z_map)[0][0])) \
@@ -112,10 +116,10 @@ if __name__ == "__main__":
                         'noise_mean': noise_mean,
                         'noise_std': noise_std,
                         'inverse_transformer_state': transformer_state.min_max_inverse_transform}
-    HMC_params = {'num_samples': 500,
+    HMC_params = {'num_samples': 5000,
                   'step_size': 1.,
                   'num_steps_per_sample': 5,
-                  'burn': 250,
+                  'burn': 3500,
                   'integrator': hamiltorch.Integrator.IMPLICIT,
                   'sampler': hamiltorch.Sampler.HMC_NUTS,
                   'desired_accept_rate': 0.3}
@@ -133,3 +137,10 @@ if __name__ == "__main__":
 
     plot_results.plot_contours(MCGAN_results, true_state, domain,
                                pressure_or_velocity='velocity')
+
+    plot_results.plot_state(MCGAN_results,true_state, domain,
+                           time_plot_ids=[100,200,253],
+                           pressure_or_velocity='velocity',
+                           save_string='MCGAN_state_plots.pdf')
+
+    plot_results.plot_par_histograms(MCGAN_results, true_pars)
