@@ -4,7 +4,7 @@ import torch
 
 
 
-class NetworkDataset(torch.utils.data.Dataset):
+class PipeDataset(torch.utils.data.Dataset):
     def __init__(self, data_path, num_files=10,
                  transformer_state=None, transformer_pars=None):
 
@@ -60,14 +60,14 @@ def get_dataloader(data_path,
                     drop_last=True
                     ):
 
-    dataset = NetworkDataset(data_path=data_path,
-                             num_files=num_files,
-                             transformer_state=transformer_state,
-                             transformer_pars=transformer_pars)
+    dataset = PipeDataset(data_path=data_path,
+                          num_files=num_files,
+                          transformer_state=transformer_state,
+                          transformer_pars=transformer_pars)
     dataloader = torch.utils.data.DataLoader(dataset,
-                                               batch_size=batch_size,
-                                               shuffle=shuffle,
-                                               num_workers=num_workers,
-                                               drop_last=drop_last)
+                                             batch_size=batch_size,
+                                             shuffle=shuffle,
+                                             num_workers=num_workers,
+                                             drop_last=drop_last)
 
     return dataloader

@@ -96,7 +96,10 @@ class ParameterGeneratorPipeFlow(nn.Module):
 
         x = self.deconv[0](x)
         for (batch_norm, deconv) in zip(self.batch_norm[1:], self.deconv[1:]):
+        #for i in range(1,len(self.channels)-1):
             x = self.activation(x)
+            #x = self.batch_norm[i](x)
+            #x = self.deconv[i](x)
             x = batch_norm(x)
             x = deconv(x)
         x[:,:,:,-1] = x[:,:,:,-3].clone() + \
@@ -106,6 +109,9 @@ class ParameterGeneratorPipeFlow(nn.Module):
         pars = self.conv_par_in(x)
         pars = self.activation(pars)
         for (batch_norm, conv_par) in zip(self.batch_norm_pars, self.conv_par):
+        #for i in range(len(self.par_neurons)-1):
+            #pars = self.batch_norm_pars[i](pars)
+            #pars = self.conv_par[i](pars)
             pars = batch_norm(pars)
             pars = conv_par(pars)
             pars = self.activation(pars)

@@ -1,6 +1,7 @@
 import pdb
 import torch
 import hamiltorch
+import matplotlib.pyplot as plt
 
 def latent_posterior(z, generator, obs_operator, observations,
                      prior_mean, prior_std, noise_mean, noise_std,
@@ -10,10 +11,12 @@ def latent_posterior(z, generator, obs_operator, observations,
                                                prior_std).log_prob(z).sum()
 
     gen_state, _ = generator(z.view(1, len(z)))
-    gen_measurement = obs_operator(gen_state)
-    gen_measurement = inverse_transformer_state(gen_measurement)
-    error = observations - gen_measurement
-    error = error.detach()
+    gen_state = obs_operator(gen_state)
+    gen_state = inverse_transformer_state(gen_state,
+                                          velocity_or_pressure='pressure')
+    error = observations - gen_state
+    error = error
+
     reconstruction_score = torch.distributions.Normal(noise_mean,
                                       noise_std).log_prob(error).sum()
 

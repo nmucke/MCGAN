@@ -9,10 +9,12 @@ from utils.seed_everything import seed_everything
 from inference.maximum_a_posteriori import compute_MAP
 from inference.MCMC import hamiltonian_MC
 import hamiltorch
-torch.set_default_dtype(torch.float64)
+torch.set_default_dtype(torch.float32)
 from utils.compute_statistics import get_statistics_from_latent_samples
 from plotting import plot_results
 import matplotlib.pyplot as plt
+
+torch.set_default_dtype(torch.float32)
 
 def observation_operator(data, obs_idx):
     if len(data.shape) == 3:
@@ -32,7 +34,7 @@ if __name__ == "__main__":
 
     seed_everything()
 
-    cuda = False
+    cuda = True
     if cuda:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     else:
@@ -79,10 +81,10 @@ if __name__ == "__main__":
     true_pars = torch.tensor(true_pars)
 
 
-    obs_t, obs_x =  range(0,256), np.array([10,246])
+    obs_t, obs_x =  range(0,256), [10, 246]
     obs_t, obs_x = np.meshgrid(obs_t, obs_x)
     obs_idx = [1, obs_t, obs_x]
-    obs_std = 1e3
+    obs_std = 2.5e3
 
     obs_operator = lambda obs: observation_operator(obs, obs_idx)
     observations = obs_operator(true_state).to(device)
@@ -98,7 +100,7 @@ if __name__ == "__main__":
                         obs_operator=obs_operator,
                         obs_std=obs_std,
                         inverse_transformer_state=transformer_state.min_max_inverse_transform,
-                        num_iters=500)
+                        num_iters=5000)
 
     obs_error = torch.linalg.norm(observations-\
                   obs_operator(generator(z_map)[0][0])) \

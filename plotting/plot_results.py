@@ -67,6 +67,7 @@ def plot_state(MCGAN_results, true_state, domain,
 
     MCGAN_state = MCGAN_results['state_mean'][idx, :, :].cpu().detach().numpy()
     MCGAN_std = MCGAN_results['state_std'][idx, :, :].cpu().detach().numpy()
+    true_state = true_state.cpu().detach().numpy()
 
     plt.figure(figsize=(10,3))
 
